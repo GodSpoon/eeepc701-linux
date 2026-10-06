@@ -15,6 +15,13 @@ Celeron M ULV 353 @ 900 MHz, Intel 915GM graphics, Atheros AR5007EG wifi, 2 GB R
   so the SD card is never written for swapping
 - **SD-friendly:** ext4 with `noatime,commit=60`, /tmp on tmpfs, journald capped at 30 MB
 
+## Download
+
+Prebuilt image, release **v1.0.0**:
+
+- <https://github.com/GodSpoon/eeepc701-linux/releases/tag/v1.0.0>
+- `eeepc701-linux.img.xz` (~610 MB) + `.sha256` sidecar
+
 ## Flashing
 
 ```bash
@@ -25,7 +32,7 @@ xz -dc eeepc701-linux.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fs
 Or use balenaEtcher / Raspberry Pi Imager with the `.img.xz` file directly.
 
 Then on the 701: power on, tap **F2** → *Boot* → set the **SD card reader as the first
-boot device* (the BIOS treats the internal reader as a mass-storage/USB device) — or tap
+boot device** (the BIOS treats the internal reader as a mass-storage/USB device) — or tap
 **Esc** at POST for the one-time boot menu and pick the SD card.
 
 First boot automatically grows the root filesystem to fill the card.
