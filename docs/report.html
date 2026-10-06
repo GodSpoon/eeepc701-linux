@@ -90,16 +90,18 @@ covered whether or not a particular 353 stepping carries the PAE flag.
 <div class="card">
 <h3 style="margin-top:0">Test 2 — full image BIOS boot <span class="pill ok">PASS</span></h3>
 Booted the actual <code>.img</code> as an IDE disk (exercising the MBR &rarr; GRUB i386-pc &rarr;
-kernel path exactly as the 701 BIOS will), 2 GB RAM, <code>-cpu qemu32</code>. GRUB menu
-&rarr; kernel &rarr; systemd &rarr; lightdm autologin &rarr; Openbox session with tint2/nm-applet
-confirmed via SSH checks and a VGA screendump:
+kernel path exactly as the 701 BIOS will), 2 GB RAM, <code>-cpu qemu32</code>. Verified from inside
+via the GRUB serial-console entry: <code>ssh.service active + enabled</code>, NetworkManager
+connected the NIC, key-auth SSH from the test host succeeded
+(<code>SSH_FROM_HOST_OK — Linux eeepc701 6.12.112-eeepc i686</code>), zram swap active, 155 MB RAM
+used at the console. VGA screendump of the autologged-in Openbox session:
 <p><img class="shot" src="desktop.png" alt="Openbox desktop screenshot from VM"></p>
 </div>
 
 <h2>Memory footprint (2 GB VM, idle at desktop)</h2>
 <table>
 <tr><th>Metric</th><th>Value</th></tr>
-<tr><td>RAM used at idle (free -m, after boot)</td><td>≈250–350 MB including zram</td></tr>
+<tr><td>RAM used at idle (free -m)</td><td>155 MB at console, ~250–350 MB at the Openbox desktop</td></tr>
 <tr><td>Swap</td><td>1 GB zram (lz4), swappiness 150</td></tr>
 <tr><td>OOM guard</td><td>earlyoom enabled</td></tr>
 </table>
