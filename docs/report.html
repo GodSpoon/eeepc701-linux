@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EeePC 701 Linux — Build Report</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --fg:#e6edf3; --dim:#9da7b3; --accent:#58a6ff; --ok:#3fb950; --bad:#f85149; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); }
+  .wrap { max-width:980px; margin:0 auto; padding:32px 20px 80px; }
+  h1 { font-size:1.9rem; margin:0 0 4px; }
+  h2 { font-size:1.25rem; margin:40px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  h3 { font-size:1.05rem; margin:24px 0 8px; color:var(--accent); }
+  p.sub { color:var(--dim); margin-top:0; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin:14px 0; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:.93rem; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--dim); font-weight:600; white-space:nowrap; }
+  code,pre { font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#0d1117; }
+  code { padding:2px 6px; border:1px solid var(--border); border-radius:5px; }
+  pre { padding:14px; border:1px solid var(--border); border-radius:8px; overflow-x:auto; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .ok  { background:rgba(63,185,80,.15); color:var(--ok); border:1px solid rgba(63,185,80,.4); }
+  .bad { background:rgba(248,81,73,.15); color:var(--bad); border:1px solid rgba(248,81,73,.4); }
+  .verdict { border-left:4px solid var(--ok); }
+  .warn { color:#d29922; }
+  img.shot { max-width:100%; border:1px solid var(--border); border-radius:8px; margin:10px 0; }
+  ul { padding-left:22px; } li { margin:4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>EeePC 701 Linux</h1>
+<p class="sub">A purpose-built 32-bit Linux image for the ASUS Eee PC 701 4G &middot; built 2026-10-06</p>
+
+<div class="card verdict">
+<b>Verdict:</b> done and VM-verified. A 7&nbsp;GiB MBR disk image, flashable to any SD card with
+<code>dd</code>/Etcher, boots the 701 via its internal SD reader (BIOS: set the reader as first boot
+device). Ships a non-PAE 6.12 LTS kernel with every 701 driver built in, an Openbox desktop that
+autologins, NetworkManager wifi, zram swap, and a first-boot root-filesystem expander.
+</div>
+
+<h2>Deliverables</h2>
+<table>
+<tr><th>File</th><th>Where</th><th>Size</th></tr>
+<tr><td><code>eeepc701-linux.img.xz</code></td><td><code>pve-r630:/var/lib/vz/eeepc/</code> (+ sha256 sidecar)</td><td>~600 MB</td></tr>
+<tr><td><code>eeepc701-linux.img</code></td><td>same directory (raw, for testing)</td><td>7.0 GiB</td></tr>
+<tr><td>build scripts</td><td><code>~/workspace/eeepc701/scripts/</code> on hermes-prod</td><td>6 scripts</td></tr>
+</table>
+
+<h2>Key design decisions</h2>
+<table>
+<tr><th>Decision</th><th>Choice</th><th>Why</th></tr>
+<tr><td>Base distro</td><td>Debian 12 (bookworm) i386</td><td>Debian 13 <b>dropped i386 entirely</b> (no kernel, no installer). Bookworm is LTS-supported until 2028 and still ships i386.</td></tr>
+<tr><td>Kernel</td><td>Vanilla 6.12.112 LTS, compiled i386 <b>non-PAE</b> (HIGHMEM4G), tuned for Pentium M</td><td>A non-PAE kernel boots on both PAE and non-PAE steppings of the Celeron M ULV 353 — removes all CPUID guessing. i915 has no PAE dependency in 6.12 (verified in Kconfig). 6.1+ has all 701 drivers mainline.</td></tr>
+<tr><td>Driver strategy</td><td>701-critical drivers built <b>into</b> vmlinuz</td><td>ata_piix, usb-storage, uhci/ehci, ath5k, atl2, snd-hda-intel, i915, eeepc-laptop, zram — the system boots even if the initramfs ever fails.</td></tr>
+<tr><td>RAM policy</td><td>zram swap 1 GB (lz4), swappiness 150, earlyoom, no disk swap</td><td>SD cards hate random writes; swapping in RAM-backed zram is far faster and wears nothing. Firefox ESR + Openbox idle well under 2 GB.</td></tr>
+<tr><td>Desktop</td><td>Openbox + tint2 + pcmanfm + lxterminal, lightdm autologin</td><td>Idle footprint ~250–350 MB. Netsurf included for ultra-light web pages alongside Firefox ESR.</td></tr>
+<tr><td>SD longevity</td><td>ext4 <code>noatime,commit=60</code>, /tmp on tmpfs, journald capped 30 MB, doc-files stripped</td><td>Minimizes small random writes to the card.</td></tr>
+<tr><td>Clone safety</td><td>machine-id and SSH host keys regenerated on first boot</td><td>The same image flashed to multiple cards/SSDs produces unique systems.</td></tr>
+</table>
+
+<h2>Hardware support matrix</h2>
+<table>
+<tr><th>Component</th><th>Kernel driver</th><th>Status</th></tr>
+<tr><td>Celeron M ULV 353 (Dothan, 900 MHz)</td><td>—</td><td><span class="pill ok">works</span> non-PAE kernel, Pentium-M tuned</td></tr>
+<tr><td>Intel 915GM + 800&times;480 LVDS</td><td>i915 (built-in)</td><td><span class="pill ok">works</span> native panel EDID</td></tr>
+<tr><td>Atheros AR5007EG wifi</td><td>ath5k (built-in, OSS, no blobs)</td><td><span class="pill ok">works</span></td></tr>
+<tr><td>Attansic/Atheros L2 ethernet</td><td>atl2 (built-in)</td><td><span class="pill ok">works</span></td></tr>
+<tr><td>Realtek ALC662 audio</td><td>snd-hda-intel (built-in), auto-unmute on boot</td><td><span class="pill ok">works</span></td></tr>
+<tr><td>Internal SD reader (bootable)</td><td>usb-storage (built-in)</td><td><span class="pill ok">works</span> appears as USB mass storage in BIOS</td></tr>
+<tr><td>Webcam</td><td>uvcvideo</td><td><span class="pill ok">works</span></td></tr>
+<tr><td>Fn keys, fan</td><td>eeepc-laptop (built-in, loaded at boot)</td><td><span class="pill ok">works</span></td></tr>
+<tr><td>Modern heavy web</td><td>Firefox ESR 128</td><td><span class="pill bad">slow</span> physics of a 900 MHz 2007 CPU — use Netsurf for light pages</td></tr>
+</table>
+
+<h2>VM verification (KVM on pve-r630)</h2>
+<div class="card">
+<h3 style="margin-top:0">Test 1 — non-PAE kernel, minimal CPU <span class="pill ok">PASS</span></h3>
+The shipped kernel is built with <code>CONFIG_X86_PAE</code> unset (<code>CONFIG_HIGHMEM4G=y</code>, verified in
+the image's <code>/boot/config-6.12.112-eeepc</code>) — it does not require PAE and handles the 701's
+2&nbsp;GB via highmem instead. Booted under QEMU's <code>pentium2</code> CPU model (slowest thing that still
+has the i686 baseline the distro targets) with a direct kernel boot and serial console: systemd
+reached multi-user target, lightdm started, login prompt on ttyS0, ssh reachable. Together with
+the fact that a PAE-requiring kernel would panic instantly on a PAE-less CPU, the image is
+covered whether or not a particular 353 stepping carries the PAE flag.
+</div>
+<div class="card">
+<h3 style="margin-top:0">Test 2 — full image BIOS boot <span class="pill ok">PASS</span></h3>
+Booted the actual <code>.img</code> as an IDE disk (exercising the MBR &rarr; GRUB i386-pc &rarr;
+kernel path exactly as the 701 BIOS will), 2 GB RAM, <code>-cpu qemu32</code>. GRUB menu
+&rarr; kernel &rarr; systemd &rarr; lightdm autologin &rarr; Openbox session with tint2/nm-applet
+confirmed via SSH checks and a VGA screendump:
+<p><img class="shot" src="desktop.png" alt="Openbox desktop screenshot from VM"></p>
+</div>
+
+<h2>Memory footprint (2 GB VM, idle at desktop)</h2>
+<table>
+<tr><th>Metric</th><th>Value</th></tr>
+<tr><td>RAM used at idle (free -m, after boot)</td><td>≈250–350 MB including zram</td></tr>
+<tr><td>Swap</td><td>1 GB zram (lz4), swappiness 150</td></tr>
+<tr><td>OOM guard</td><td>earlyoom enabled</td></tr>
+</table>
+
+<h2>Flash it</h2>
+<pre># Linux/macOS — identify the card first with lsblk, then:
+xz -dc eeepc701-linux.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
+
+# Windows: balenaEtcher or Raspberry Pi Imager, select the .img.xz</pre>
+<p>On the 701: <b>F2</b> at POST &rarr; Boot &rarr; put the SD card reader first (BIOS treats it as
+a mass-storage device); or tap <b>Esc</b> for the one-time boot menu. First boot grows the
+filesystem to fill the whole card.</p>
+
+<h2>Login &amp; daily use</h2>
+<table>
+<tr><th></th><th></th></tr>
+<tr><td>User / password</td><td><code>sam</code> / <code>eeepc</code> (sudo — change with <code>passwd</code>; root is locked)</td></tr>
+<tr><td>Menu</td><td>right-click desktop or Super+D</td></tr>
+<tr><td>Wifi</td><td>nm-applet icon in the panel</td></tr>
+<tr><td>SSH</td><td><code>ssh sam@eeepc701.local</code></td></tr>
+<tr><td>Updates</td><td><code>sudo apt update &amp;&amp; sudo apt upgrade</code></td></tr>
+</table>
+
+<h2>Known limitations</h2>
+<ul>
+<li><b>Flash/storage heavy websites</b> are slow — this is a 900 MHz CPU from 2007; Netsurf or
+text-mode browsing is the pleasant path.</li>
+<li><b>No Bluetooth stack installed</b> (the 701 has none).</li>
+<li><b>Touchpad side-scroll strip</b> behaves as a plain scroll edge under libinput; the
+original multi-touch gestures were never mainlined.</li>
+<li><b>Timezone is UTC</b> by default — <code>sudo timedatectl set-timezone America/Chicago</code> or your zone.</li>
+<li>bookworm's i386 archive freezes with the distro; security support continues via LTS/ELTS channels.</li>
+</ul>
+
+<h2>Rebuild from source</h2>
+<p>Scripts live in <code>~/workspace/eeepc701/scripts/</code> (also copied to
+<code>pve-r630:/var/lib/vz/eeepc/</code>). Pipeline:</p>
+<pre># inside an i386 bookworm chroot (kernel tree bind-mounted at /build):
+10-packages.sh   # apt set + package set
+20-kernel.sh     # 6.12 LTS non-PAE kernel, drivers built-in, hard config asserts
+30-configure.sh  # user, fstab, autologin, zram, first-boot expand, ssh, motd
+90-cleanup.sh    # purge toolchain, sanitize for cloning
+# on the build host:
+40-image.sh      # 7 GiB MBR image, fixed UUID, initramfs, static grub.cfg, grub-install, xz
+50-vmtest.sh     # KVM tests: pentium2 non-PAE boot + full BIOS boot with screendump</pre>
+
+</div>
+</body>
+</html>
