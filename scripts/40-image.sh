@@ -46,17 +46,17 @@ insmod part_msdos
 insmod ext2
 search --no-floppy --fs-uuid --set=root $IMG_UUID
 
-menuentry "EeePC Linux (kernel $KREL)" {
+menuentry "Deeebian (kernel $KREL)" {
     linux /boot/vmlinuz-$KREL root=UUID=$IMG_UUID ro quiet rootwait
     initrd /boot/initrd.img-$KREL
 }
 
-menuentry "EeePC Linux — recovery shell" {
+menuentry "Deeebian — recovery shell" {
     linux /boot/vmlinuz-$KREL root=UUID=$IMG_UUID ro rootwait systemd.unit=rescue.target
     initrd /boot/initrd.img-$KREL
 }
 
-menuentry "EeePC Linux — serial console (ttyS0)" {
+menuentry "Deeebian — serial console (ttyS0)" {
     linux /boot/vmlinuz-$KREL root=UUID=$IMG_UUID ro rootwait console=ttyS0,115200n8
     initrd /boot/initrd.img-$KREL
 }

@@ -198,7 +198,7 @@ chown -R sam:sam /home/sam/.config
 # --- MOTD with quick reference ---
 cat > /etc/motd <<'EOF'
 
-  EeePC 701 Linux — Debian 12 (bookworm) i386, kernel 6.12 LTS (non-PAE)
+  Deeebian — Debian 12 (bookworm) i386 for the ASUS Eee PC 701, kernel 6.12 LTS (non-PAE)
   ------------------------------------------------------------------------
   user: sam   password: eeepc   (change with: passwd)
   sudo works for sam. Root login is locked.

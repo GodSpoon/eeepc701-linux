@@ -1,4 +1,5 @@
-# EeePC 701 Linux
+# Deeebian
+*Debian for the Eee PC.*
 
 A purpose-built 32-bit Linux distribution for the **ASUS Eee PC 701 4G** (2007 netbook:
 Celeron M ULV 353 @ 900 MHz, Intel 915GM graphics, Atheros AR5007EG wifi, 2 GB RAM).
